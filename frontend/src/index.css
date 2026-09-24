@@ -1,0 +1,53 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f7f5f2;
+  color: #222;
+}
+a { text-decoration: none; color: inherit; }
+
+.container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+
+.navbar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #d9480f; color: white; padding: 14px 24px;
+}
+.navbar a { color: white; margin-left: 16px; font-weight: 500; }
+.navbar .brand { font-size: 1.3rem; font-weight: 700; }
+
+.card {
+  background: white; border-radius: 10px; padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+
+.btn {
+  background: #d9480f; color: white; border: none; padding: 8px 16px;
+  border-radius: 6px; cursor: pointer; font-size: 0.95rem;
+}
+.btn:hover { background: #b8380a; }
+.btn.secondary { background: #6c757d; }
+.btn.danger { background: #c0392b; }
+.btn:disabled { background: #ccc; cursor: not-allowed; }
+
+.input {
+  width: 100%; padding: 8px 10px; margin: 6px 0 14px;
+  border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem;
+}
+
+.error { color: #c0392b; margin: 8px 0; font-size: 0.9rem; }
+.form-box { max-width: 380px; margin: 40px auto; }
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: 0.75rem; font-weight: 600; text-transform: capitalize;
+  background: #eee;
+}
+.badge.delivered { background: #d4edda; color: #155724; }
+.badge.pending { background: #fff3cd; color: #856404; }
+.badge.cancelled { background: #f8d7da; color: #721c24; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
