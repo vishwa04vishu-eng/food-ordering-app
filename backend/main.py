@@ -17,7 +17,7 @@ app = FastAPI(
 # Allow the React dev server (Vite default port 5173) to call this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+|https://food-ordering-app-nine-pi\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
