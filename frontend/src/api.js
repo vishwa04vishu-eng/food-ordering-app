@@ -6,7 +6,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'https://food-ordering-app-6dq1.onrender.com',
 })
 
 api.interceptors.request.use((config) => {
