@@ -19,7 +19,7 @@ app.mount("/uploads", StaticFiles(directory=food_routes.UPLOAD_DIR), name="uploa
 # Allow the React dev server (Vite default port 5173) to call this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+|https://food-ordering.*\.vercel\.app",,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+|https://food-ordering.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
