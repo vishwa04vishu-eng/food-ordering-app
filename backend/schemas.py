@@ -48,6 +48,7 @@ class FoodItemCreate(BaseModel):
     category: str = Field(min_length=2, max_length=80)
     price: Decimal = Field(gt=0)
     image_url: Optional[str] = None
+    stock_quantity: int = Field(default=0, ge=0)
     is_available: bool = True
 
 
@@ -57,6 +58,7 @@ class FoodItemUpdate(BaseModel):
     category: Optional[str] = None
     price: Optional[Decimal] = Field(default=None, gt=0)
     image_url: Optional[str] = None
+    stock_quantity: Optional[int] = Field(default=None, ge=0)
     is_available: Optional[bool] = None
 
 
@@ -68,6 +70,7 @@ class FoodItemOut(BaseModel):
     category: str
     price: Decimal
     image_url: Optional[str]
+    stock_quantity: int
     is_available: bool
 
 

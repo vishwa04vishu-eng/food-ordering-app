@@ -55,10 +55,19 @@ def add_to_cart(
     current_user: models.User = Depends(get_current_user),
 ):
     food_item = db.query(models.FoodItem).filter(models.FoodItem.id == payload.food_item_id).first()
-    if not food_item or not food_item.is_available:
-        raise HTTPException(status_code=404, detail="Food item not available")
+    if not food_item or not food_item.is_available or food_item.stock_quantity <= 0:
+        raise HTTPException(status_code=400, detail="Food item is out of stock")
 
     cart = _get_or_create_cart(db, current_user)
+    in_cart_quantity = sum(ci.quantity for ci in cart.items if ci.food_item_id == payload.food_item_id)
+    total_after_add = in_cart_quantity + payload.quantity
+
+    if total_after_add > food_item.stock_quantity:
+        remaining = max(food_item.stock_quantity - in_cart_quantity, 0)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only {remaining} item(s) left for {food_item.name}. You cannot exceed the available stock.",
+        )
 
     existing_line = next((ci for ci in cart.items if ci.food_item_id == payload.food_item_id), None)
     if existing_line:
@@ -82,6 +91,15 @@ def update_cart_item(
     line = next((ci for ci in cart.items if ci.id == cart_item_id), None)
     if not line:
         raise HTTPException(status_code=404, detail="Cart item not found")
+
+    if line.food_item is None:
+        raise HTTPException(status_code=404, detail="Food item not found")
+
+    if payload.quantity > line.food_item.stock_quantity:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only {line.food_item.stock_quantity} item(s) available for {line.food_item.name}.",
+        )
 
     line.quantity = payload.quantity
     db.commit()

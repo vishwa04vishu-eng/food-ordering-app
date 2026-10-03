@@ -44,6 +44,7 @@ class FoodItem(Base):
     category = Column(String(80), nullable=False, index=True)
     price = Column(Numeric(10, 2), nullable=False)
     image_url = Column(String(500))
+    stock_quantity = Column(Integer, default=0, nullable=False)
     is_available = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
 

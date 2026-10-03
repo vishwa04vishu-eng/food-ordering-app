@@ -12,6 +12,7 @@ Creates:
 from database import SessionLocal, Base, engine
 import models
 from auth import hash_password
+from menu_catalog import FOOD_CATALOG
 
 Base.metadata.create_all(bind=engine)
 db = SessionLocal()
@@ -40,21 +41,16 @@ if not db.query(models.User).filter(models.User.email == "customer@food.com").fi
     db.add(models.Cart(user_id=cust.id))
     print("Created customer@food.com / customer123")
 
-sample_items = [
-    ("Margherita Pizza", "Classic cheese and tomato pizza", "Pizza", 249.00),
-    ("Pepperoni Pizza", "Loaded with pepperoni", "Pizza", 299.00),
-    ("Veg Burger", "Crispy veg patty burger", "Burgers", 129.00),
-    ("Chicken Burger", "Grilled chicken burger", "Burgers", 159.00),
-    ("Butter Chicken", "Creamy tomato chicken curry", "Main Course", 259.00),
-    ("Paneer Tikka", "Grilled cottage cheese skewers", "Starters", 199.00),
-    ("Cold Coffee", "Chilled coffee with ice cream", "Beverages", 99.00),
-    ("Chocolate Brownie", "Warm brownie with fudge", "Desserts", 129.00),
-]
-
 if db.query(models.FoodItem).count() == 0:
-    for name, desc, cat, price in sample_items:
-        db.add(models.FoodItem(name=name, description=desc, category=cat, price=price))
-    print(f"Added {len(sample_items)} sample food items")
+    for item_data in FOOD_CATALOG:
+        db.add(models.FoodItem(**item_data, is_available=item_data["stock_quantity"] > 0))
+    print(f"Added {len(FOOD_CATALOG)} sample food items")
+
+catalog_by_name = {item["name"]: item for item in FOOD_CATALOG}
+for food_item in db.query(models.FoodItem).all():
+    catalog_item = catalog_by_name.get(food_item.name)
+    if catalog_item and not food_item.image_url:
+        food_item.image_url = catalog_item["image_url"]
 
 db.commit()
 db.close()

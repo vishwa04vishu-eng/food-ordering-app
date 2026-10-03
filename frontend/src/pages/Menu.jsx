@@ -14,15 +14,13 @@ export default function Menu() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [message, setMessage] = useState('')
+  const [quantities, setQuantities] = useState({})
   const { user } = useAuth()
 
-  // Runs once on mount to populate the category dropdown
   useEffect(() => {
     api.get('/food/categories/list').then((res) => setCategories(res.data)).catch(() => {})
   }, [])
 
-  // Runs whenever `search` or `category` changes -> re-fetches the filtered list.
-  // This is a debounce-free simple version; fine for an intern-level project.
   useEffect(() => {
     const params = {}
     if (search) params.search = search
@@ -31,11 +29,28 @@ export default function Menu() {
     api.get('/food', { params }).then((res) => setItems(res.data))
   }, [search, category])
 
+  function adjustQuantity(itemId, change, stockLimit = 10) {
+    const current = quantities[itemId] ?? 1
+    if (change > 0 && current >= stockLimit) {
+      setMessage("That's all of the available stock at the moment.")
+      return
+    }
+
+    setQuantities((prev) => {
+      const currentQuantity = prev[itemId] ?? 1
+      const next = Math.max(1, Math.min(stockLimit, currentQuantity + change))
+      return { ...prev, [itemId]: next }
+    })
+  }
+
   async function addToCart(foodItemId) {
     setMessage('')
+    const quantity = Math.max(1, quantities[foodItemId] ?? 1)
+
     try {
-      await api.post('/cart/items', { food_item_id: foodItemId, quantity: 1 })
-      setMessage('Added to cart!')
+      await api.post('/cart/items', { food_item_id: foodItemId, quantity })
+      setQuantities((prev) => ({ ...prev, [foodItemId]: 1 }))
+      setMessage(`Added ${quantity} item(s) to cart!`)
       setTimeout(() => setMessage(''), 1500)
     } catch (err) {
       setMessage(err.response?.data?.detail || 'Please login to order.')
@@ -65,17 +80,48 @@ export default function Menu() {
       {message && <div className="card" style={{ marginBottom: 16 }}>{message}</div>}
 
       <div className="grid">
-        {items.map((item) => (
-          <div className="card" key={item.id}>
-            <h3>{item.name}</h3>
-            <p style={{ color: '#777', fontSize: '0.9rem' }}>{item.description}</p>
-            <p><span className="badge">{item.category}</span></p>
-            <p style={{ fontWeight: 700 }}>₹{item.price}</p>
-            {user?.role !== 'admin' && (
-              <button className="btn" onClick={() => addToCart(item.id)}>Add to Cart</button>
-            )}
-          </div>
-        ))}
+        {items.map((item) => {
+          const quantity = quantities[item.id] ?? 1
+          const stockLimit = Math.max(0, Number(item.stock_quantity ?? 0))
+          const isOutOfStock = !item.is_available || stockLimit <= 0
+
+          return (
+            <div className="card menu-card" key={item.id}>
+              {item.image_url && (
+                <img src={item.image_url} alt={item.name} className="food-image" />
+              )}
+
+              <div className="menu-card-body">
+                <h3>{item.name}</h3>
+                <p style={{ color: '#777', fontSize: '0.9rem' }}>{item.description}</p>
+                <p><span className="badge">{item.category}</span></p>
+                <p style={{ fontWeight: 700 }}>₹{item.price}</p>
+                <p style={{ color: '#666', margin: '6px 0' }}>Available: {stockLimit}</p>
+
+                {isOutOfStock ? (
+                  <div className="out-of-stock">Out of stock</div>
+                ) : (
+                  <div className="quantity-row">
+                    <button className="qty-btn" onClick={() => adjustQuantity(item.id, -1, stockLimit)}>-</button>
+                    <span>{quantity}</span>
+                    <button className="qty-btn" onClick={() => adjustQuantity(item.id, 1, stockLimit)}>+</button>
+                  </div>
+                )}
+
+                {user?.role !== 'admin' && (
+                  <button
+                    className="btn"
+                    onClick={() => addToCart(item.id)}
+                    disabled={isOutOfStock}
+                    style={{ marginTop: 12, width: '100%' }}
+                  >
+                    {isOutOfStock ? 'Unavailable' : `Add ${quantity}`}
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
         {items.length === 0 && <p>No items found.</p>}
       </div>
     </div>

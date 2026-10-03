@@ -42,14 +42,31 @@ def place_order(db: Session = Depends(get_db), current_user: models.User = Depen
     if not cart or not cart.items:
         raise HTTPException(status_code=400, detail="Your cart is empty")
 
+    quantities_by_food = {}
+    for line in cart.items:
+        quantities_by_food[line.food_item_id] = quantities_by_food.get(line.food_item_id, 0) + line.quantity
+
+    locked_items = {}
+    for food_item_id, quantity in sorted(quantities_by_food.items()):
+        food_item = (
+            db.query(models.FoodItem)
+            .filter(models.FoodItem.id == food_item_id)
+            .with_for_update()
+            .populate_existing()
+            .first()
+        )
+        if not food_item or not food_item.is_available or food_item.stock_quantity < quantity:
+            db.rollback()
+            name = food_item.name if food_item else "A food item"
+            raise HTTPException(status_code=400, detail=f"That's all of the available stock at the moment for {name}.")
+        locked_items[food_item_id] = food_item
+
     total = Decimal("0.00")
     order = models.Order(user_id=current_user.id, total_amount=Decimal("0.00"))
     db.add(order)
     db.flush()  # so order.id is available for order_items
 
     for line in cart.items:
-        if not line.food_item.is_available:
-            raise HTTPException(status_code=400, detail=f"'{line.food_item.name}' is no longer available")
         line_total = line.food_item.price * line.quantity
         total += line_total
         db.add(models.OrderItem(
@@ -58,6 +75,11 @@ def place_order(db: Session = Depends(get_db), current_user: models.User = Depen
             quantity=line.quantity,
             price_at_order=line.food_item.price,  # snapshot price at time of order
         ))
+
+    for food_item_id, quantity in quantities_by_food.items():
+        food_item = locked_items[food_item_id]
+        food_item.stock_quantity -= quantity
+        food_item.is_available = food_item.stock_quantity > 0
 
     order.total_amount = total
 

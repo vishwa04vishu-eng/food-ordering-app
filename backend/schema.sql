@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS food_items (
     category VARCHAR(80) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     image_url VARCHAR(500),
+    stock_quantity INT NOT NULL DEFAULT 0,
     is_available BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
