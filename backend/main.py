@@ -1,7 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-
 from database import Base, engine
 from routers import auth_routes, food_routes, cart_routes, order_routes, admin_routes
 
@@ -13,9 +11,6 @@ app = FastAPI(
     description="REST API for a food ordering app: auth, menu, cart, orders, admin dashboard.",
     version="1.0.0",
 )
-
-app.mount("/uploads", StaticFiles(directory=food_routes.UPLOAD_DIR), name="uploads")
-
 # Allow the React dev server (Vite default port 5173) to call this API
 app.add_middleware(
     CORSMiddleware,
