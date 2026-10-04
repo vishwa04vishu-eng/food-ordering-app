@@ -108,6 +108,18 @@ def delete_food_item(item_id: int, db: Session = Depends(get_db)):
     item = db.query(models.FoodItem).filter(models.FoodItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Food item not found")
+
+    has_past_orders = db.query(models.OrderItem).filter(models.OrderItem.food_item_id == item_id).first()
+    if has_past_orders:
+        # Keep order history intact: hide it from the menu instead of deleting it outright.
+        item.is_available = False
+        item.stock_quantity = 0
+        db.commit()
+        raise HTTPException(
+            status_code=409,
+            detail="This item has past orders and can't be deleted, so it was marked unavailable instead.",
+        )
+
     db.delete(item)
     db.commit()
     return None
