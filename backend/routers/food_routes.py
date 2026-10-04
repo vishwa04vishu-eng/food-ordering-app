@@ -35,3 +35,79 @@ async def upload_food_image(image: UploadFile = File(...)):
 
     result = cloudinary.uploader.upload(contents, folder="food-ordering-app")
     return {"image_url": result["secure_url"]}
+
+
+@router.get("", response_model=List[schemas.FoodItemOut])
+def list_food_items(
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Menu page calls this with ?search=...&category=... for live filtering."""
+    query = db.query(models.FoodItem)
+
+    if search:
+        like = f"%{search}%"
+        query = query.filter(or_(models.FoodItem.name.ilike(like), models.FoodItem.description.ilike(like)))
+
+    if category and category.lower() != "all":
+        query = query.filter(models.FoodItem.category == category)
+
+    return query.order_by(models.FoodItem.category, models.FoodItem.name).all()
+
+
+@router.get("/categories/list", response_model=List[str])
+def list_categories(db: Session = Depends(get_db)):
+    rows = db.query(models.FoodItem.category).distinct().all()
+    return [r[0] for r in rows]
+
+
+@router.get("/catalog", response_model=List[schemas.FoodItemCreate])
+def list_food_catalog():
+    return FOOD_CATALOG
+
+
+@router.get("/{item_id}", response_model=schemas.FoodItemOut)
+def get_food_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(models.FoodItem).filter(models.FoodItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    return item
+
+
+@router.post("", response_model=schemas.FoodItemOut, status_code=201, dependencies=[Depends(require_admin)])
+def create_food_item(payload: schemas.FoodItemCreate, db: Session = Depends(get_db)):
+    item_data = payload.model_dump()
+    item_data["is_available"] = item_data.get("is_available", True) and (item_data.get("stock_quantity", 0) > 0)
+    item = models.FoodItem(**item_data)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/{item_id}", response_model=schemas.FoodItemOut, dependencies=[Depends(require_admin)])
+def update_food_item(item_id: int, payload: schemas.FoodItemUpdate, db: Session = Depends(get_db)):
+    item = db.query(models.FoodItem).filter(models.FoodItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(item, field, value)
+
+    if item.stock_quantity is not None:
+        item.is_available = item.is_available and item.stock_quantity > 0
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/{item_id}", status_code=204, dependencies=[Depends(require_admin)])
+def delete_food_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(models.FoodItem).filter(models.FoodItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    db.delete(item)
+    db.commit()
+    return None
